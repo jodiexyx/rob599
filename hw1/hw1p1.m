@@ -42,6 +42,6 @@ k_I=[0,1]*inv([B_I A_I*B_I])*(A_I^2+3*A_I+2*eye(2));
 
 %Part 1.3.3 with integral action determine the steady state error after 10
 %seconds
-z0=[1;0];
+z0=[-1;0];
 [t,z]=ode45(@(t,z) [(A_I-B_I*k_I)*z+F_I*3/180*pi], tspan, z0);
 sse_with_integral_action=z(1001);
