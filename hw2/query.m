@@ -6,13 +6,9 @@ function [d, idx] = query()
     img_q = rgb2gray(imread('query.png'));
     feature_q = SURF(img_q);
     h = get_hist(kdtree, feature_q, n_c);
-    min = intmax;
     d = zeros(size(hist_train,1),1);
     for i=1:size(hist_train,1),
         d(i) = chi_sq_dist(h,hist_train(i,:));
-        if d(i) < min
-            min = d(i);
-            idx = i;
-        end
     end
+    [~,idx] = min(d);
 end
