@@ -106,18 +106,6 @@ function [R,t]=ransac3D(Wt0, Wt1, coeff)
         cur_t= -cur_R*centroid_1' + centroid_0'; 
         T=[cur_R,cur_t;0,0,0,1];
         
-        jt_t0=j_t0(idx,:);
-        jt_t1=j_t1(idx,:);
-        
-        ptw1=P*T*[Ws_t1';ones(1,3);];
-        jw1=ptw1(1:2,:)./repmat(ptw1(3,:),[2,1]);
-        
-        ptw0=P*inv(T)*[Ws_t0';ones(1,3);];
-        jw0=ptw0(1:2,:)./repmat(ptw0(3,:),[2,1]);
-        
-        dist_test=[jt_t0'-jw1, jt_t1'-jw0];
-        
-        
         ptw1=P*T*[Wt1';ones(1,N);];
         jw1=ptw1(1:2,:)./repmat(ptw1(3,:),[2,1]);
         ptw0=P*inv(T)*[Wt0';ones(1,N);];
