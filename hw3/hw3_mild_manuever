@@ -1,0 +1,112 @@
+%Vehicle Parameters
+a   =  1.14;		% distance c.g. to front axle (m) 
+L   =  2.54;		% wheel base (m)
+m   =  1500;		% mass (kg)
+Iz  =  2420.0;	% yaw moment of inertia (kg-m^2)
+b=L-a;   %distance of c.g to rear axel (m) 
+g=9.81;
+vx=20;
+
+%%Tire forces
+B=10;
+C=1.3;
+D=1;
+E=0.97;
+
+
+%timespan for all simulations
+T=0:0.01:1;
+
+%1.1 compute front and rear cornerning stifness
+Ca_r= a/L*m*g*B*C*D
+Ca_f= b/L*m*g*B*C*D
+% 
+%1.2.1 compute the front and rear cornering stifness for the vehicle generate equilibrium trajetory using Euler integration and linear tire
+%forces
+
+delta_fun=@(t) pi/180*sin(2*pi*t)-0.00175;
+
+Z_eq = zeros(5,length(T));
+Z_eq_0 = [0 0 0 0 0]';
+Z_eq(:,1) = Z_eq_0;
+
+for i = 1:length(T)-1
+    a_f = delta_fun(T(i))-(Z_eq(4,i)+a*Z_eq(5,i))/vx;
+    a_r = -(Z_eq(4,i)-b*Z_eq(5,i))/vx;
+    Fy_f = Ca_f*a_f;
+    Fy_r = Ca_r*a_r;
+    Z_eq(:,i+1) = Z_eq(:,i) + 0.01*[vx*cos(Z_eq(3,i))-Z_eq(4,i)*sin(Z_eq(3,i));
+                   Z_eq(4,i)*cos(Z_eq(3,i))+vx*sin(Z_eq(3,i));Z_eq(5,i);
+                   (1/m)*(Fy_r+Fy_f-m*vx*Z_eq(5,i));
+                   (1/Iz)*(-b*Fy_r+a*Fy_f)];
+end
+%1.2.2 linearization for feedback gains bike with linear tire forces
+Q = eye(5);
+R = 0.5;
+tSpan = T;
+AFun = @(i) [0,0,vx*(-sin(Z_eq(3,i)))-Z_eq(4,i)*cos(Z_eq(3,i)),-sin(Z_eq(3,i)),0;
+         0,0,-Z_eq(4,i)*sin(Z_eq(3,i))+vx*cos(Z_eq(3,i)),cos(Z_eq(3,i)),0;
+         0,0,0,0,1;
+         0,0,0,-(Ca_r+Ca_f)/(m*vx),((Ca_r*b-Ca_f*a)/vx-m*vx)/m;
+         0,0,0,(b*Ca_r-a*Ca_f)/(Iz*vx),-(Ca_r*b^2+Ca_f*a^2)/(Iz*vx)];
+     
+BFun = @(i) [0;0;0;Ca_f/m;a*Ca_f/Iz];
+[K,P] = lqr_LTV(AFun,BFun,Q,R,tSpan)
+%1.2.3 Plot linear vs nonlinear tire forces and find max % difference
+for i = 1:length(T)
+    a_f_linear(i) = delta_fun(T(i))-(Z_eq(4,i)+a*Z_eq(5,i))/vx;
+    a_r_linear(i) = -(Z_eq(4,i)-b*Z_eq(5,i))/vx;
+    
+    a_f_pace(i) = delta_fun(T(i))-atan((Z_eq(4,i)+a*Z_eq(5,i))/vx);
+    a_r_pace(i) = -atan((Z_eq(4,i)-b*Z_eq(5,i))/vx);
+    
+    Fy_f_linear(i) = Ca_f*a_f_linear(i);
+    Fy_r_linear(i) = Ca_r*a_r_linear(i);
+    
+    Fy_f_pace(i) = b/L*m*g*D*sin(C*atan(B*(1 - E)*a_f_pace(i) + E*atan(B*a_f_pace(i))));
+    
+    
+    Fy_r_pace(i) = a/L*m*g*D*sin(C*atan(B*(1 - E)*a_r_pace(i) + E*atan(B*a_r_pace(i))));
+end
+tireforce_percent_error= 100*max(max(abs(Fy_f_linear - Fy_f_pace)./abs(Fy_f_pace)),max(abs(Fy_r_linear - Fy_r_pace)./abs(Fy_r_pace)))
+
+
+%1.2.4 Euler Simulate with Nonlinear tire dynamics
+Z = zeros(5, length(T));
+Z(:, 1) = [0 0 0 0 0]';
+for i = 1: length(T)-1
+    delta(i) = K{i}*(Z_eq(:,i) - Z(:,i)) + delta_fun(T(i));
+    if (delta(i) < - 45*pi/180)
+        delta(i) = - 45*pi/180;
+    end
+    if (delta(i) > 45*pi/180)
+        delta(i) = 45*pi/180;
+    end
+    a_f_(i) = delta(i)-atan((Z(4,i)+a*Z(5,i))/vx);
+    a_r_(i) = - atan((Z(4,i)-b*Z(5,i))/vx);
+    fy_f_nl(i) = b/L*m*g*D*sin(C*atan(B*(1-E)*a_f_(i) + E*atan(B*a_f_(i))));
+    fy_r_nl(i) = a/L*m*g*D*sin(C*atan(B*(1-E)*a_r_(i) + E*atan(B*a_r_(i))));
+    Z(:, i+1) = Z(:,i) + 0.01*[vx*cos(Z(3,i))-Z(4,i)*sin(Z(3,i));
+                   Z(4,i)*cos(Z(3,i))+vx*sin(Z(3,i));
+                   Z(5,i);
+                   (1/m)*(fy_r_nl(i)+fy_f_nl(i)*cos(delta(i))-m*vx*Z(5,i));
+                   (1/Iz)*(-b*fy_r_nl(i)+a*fy_f_nl(i)*cos(delta(i)));];
+end
+
+max_distance_error = max(sqrt((Z_eq(1,:)-Z(1,:)).^2 + (Z_eq(2,:)-Z(2,:)).^2))
+
+
+function [K, P] = lqr_LTV(AFun,BFun,Q,R,tSpan)
+    nSteps = length(tSpan);
+
+    P{nSteps} = zeros(size(Q));
+    K{nSteps} = zeros(length(R),length(Q));
+    
+    for i = nSteps-1:-1:1
+        A_ = AFun(i+1);
+        B_ = BFun(i+1);
+        P_ = P{i+1};
+        P{i} = P_ + (tSpan(i+1)-tSpan(i)) * ( P_*A_ + A_'*P_ - P_*B_*(R\(B_'*P_)) + Q);
+        K{i} = R\(B_'*P_);
+    end
+end
