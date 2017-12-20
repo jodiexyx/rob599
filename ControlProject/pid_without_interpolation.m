@@ -37,11 +37,18 @@ count = 0;
 F = 0;
 k = 4;
 
-while p <= n
+while p <= n-4
     M = [x_c(1)*ones(1,n);x_c(3)*ones(1,n)]-[cline_nw(1,:);cline_nw(2,:)];
     [~,index] = sort(sum(M.*M));
 %   norm([x0(1);x0(3)]-cline_nw(:,2))%test
-    p = index(1) + 2%objective index
+    p_new = index(1) + 2;%objective index
+    
+    if p_new ~= p
+        p=p_new
+    else
+        p=p_new;
+    end
+    
     x_obj = cline_nw(:,p);%current objective point
     
     test_c = cline_nw(:,p:p+k-1);
@@ -65,15 +72,24 @@ while p <= n
     delta = max(delta,-0.5);
     delta = min(delta,0.5);
     u_new = [delta; F];
-    u_newp = repmat(u_new,1,20);%30,50...* number of input every loop(can be a function)
+    u_newp = repmat(u_new,1,5);%30,50...* number of input every loop(can be a function)
     u = [u, u_newp];
-    Y = forwardIntegrateControlInput(u');
+    %Y = forwardIntegrateControlInput(u');
+    Y = forwardIntegrateControlInput([u_new';u_newp'], x_c);
+    
+    %{
+    if mod(p, 40) == 0
+        Y = forwardIntegrateControlInput([zeros(1,2);u']);
+    else
+        Y = forwardIntegrateControlInput([zeros(1,2);u_newp'], x_c);
+    end
+    %}
     x_c = Y(end,:);
     count = count + 1;
-    x_c(2)
+    %x_c(2)
 end
 
-ROB599_ControlsProject_part1_input = u';
+ROB599_ControlsProject_part1_input = [u(:,1)';u'];
 Y =forwardIntegrateControlInput(ROB599_ControlsProject_part1_input);
 plot(Y(:,1),Y(:,3),'d','MarkerSize', 2)
 hold on;
