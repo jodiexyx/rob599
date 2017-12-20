@@ -1,5 +1,8 @@
 clc;
 clear all;
+
+tic
+
 load ('TestTrack.mat');
 bl = TestTrack.bl;
 br = TestTrack.br;
@@ -29,17 +32,23 @@ x_c = x0;
 p = 0;
 w = 10; %size of window
 pro_pool = zeros(1,w);
-a = 1;%P*
-b = 0;%I*
+a = 2;%P*
+b = 1;%I*
 c = 1;%D*
 flag = 0;%just start
 count = 0;
 F = 0;
 k = 4;
 
+u0 = zeros(2,1);
+u_c = zeros(2,1);
+
+last_cali_time = 0;
+cali_inter = 3000;
+
 while p <= n-4
     M = [x_c(1)*ones(1,n);x_c(3)*ones(1,n)]-[cline_nw(1,:);cline_nw(2,:)];
-    [~,index] = sort(sum(M.*M));
+    [min_dis,index] = sort(sum(M.*M));
 %   norm([x0(1);x0(3)]-cline_nw(:,2))%test
     p_new = index(1) + 2;%objective index
     
@@ -72,11 +81,23 @@ while p <= n-4
     delta = max(delta,-0.5);
     delta = min(delta,0.5);
     u_new = [delta; F];
-    u_newp = repmat(u_new,1,5);%30,50...* number of input every loop(can be a function)
+    
+    %calculate step num
+    velocity = x_c(2);
+    %allow_step = max(min(round(min_dis(1)/velocity/0.01/2), 20), 1);
+    allow_step = 20;
+    
+    u_newp = repmat(u_new,1,allow_step);%30,50...* number of input every loop(can be a function)
     u = [u, u_newp];
     %Y = forwardIntegrateControlInput(u');
-    Y = forwardIntegrateControlInput([u_new';u_newp'], x_c);
+    Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
     
+    if length(u)-last_cali_time>cali_inter
+        last_cali_time = length(u)
+        Y = forwardIntegrateControlInput([u0';u']);
+    else
+        Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
+    end
     %{
     if mod(p, 40) == 0
         Y = forwardIntegrateControlInput([zeros(1,2);u']);
@@ -85,13 +106,17 @@ while p <= n-4
     end
     %}
     x_c = Y(end,:);
+    u_c = u(:,end);
     count = count + 1;
     %x_c(2)
 end
 
-ROB599_ControlsProject_part1_input = [u(:,1)';u'];
+ROB599_ControlsProject_part1_input = [u0';u'];
+toc
+
 Y =forwardIntegrateControlInput(ROB599_ControlsProject_part1_input);
 plot(Y(:,1),Y(:,3),'d','MarkerSize', 2)
 hold on;
+
 
 %scatter(cline_nw(1,:),cline_nw(2,:),'d')
