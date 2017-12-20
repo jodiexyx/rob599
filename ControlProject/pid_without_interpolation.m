@@ -23,6 +23,15 @@ cline_nx = interp1(t,x_c,tq,'spline');
 cline_ny = interp1(t,y_c,tq,'spline');
 cline_nw = cline;%no interpolation
 
+%enlong the final part
+enlong_step = 5;
+for i=1:enlong_step
+    cline_final = cline_nw(:,end);
+    cline_final_b_1 = cline_nw(:,end-1);
+    cline_final_a_1 = cline_final*2-cline_final_b_1;
+    cline_nw = [cline_nw, cline_final_a_1];
+end
+
 %plot(x,y,'b');
 plot(cline_nw(1,:),cline_nw(2,:),'d');
 u = [];
@@ -53,7 +62,7 @@ u_before_cali=zeros(2,1);
 x_cali = x0;
 u_after_cali=-1;
 
-while p <= n-4
+while p <= n-2
     M = [x_c(1)*ones(1,n);x_c(3)*ones(1,n)]-[cline_nw(1,:);cline_nw(2,:)];
     [min_dis,index] = sort(sum(M.*M));
 %   norm([x0(1);x0(3)]-cline_nw(:,2))%test
@@ -67,12 +76,14 @@ while p <= n-4
     
     x_obj = cline_nw(:,p);%current objective point
     
+    %{
     test_c = cline_nw(:,p:p+k-1);
     grad = (test_c(2,:)-x_c(3)*ones(1,k))./(test_c(1,:)-x_c(1)*ones(1,k));
     dif_grad = diff(grad);
     sum_c = sum(abs(dif_grad));%sum of degree change(of 6 points after)
     sum_grad_max = 660;
     sum_grad_min = 0.03;
+    %}
     
     %F = -0.01*sum_c^2 + 500 + 10000/(x_c(2)+0.01);%input F (better be a function of v and sum_c)*
     F = 100;
