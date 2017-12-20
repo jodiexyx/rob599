@@ -66,8 +66,8 @@ for i=1:Nobs
     
     new_bl = left_bound(:, min_idx) + rate*(left_bound(:, max_idx)-left_bound(:, min_idx));
     new_br = right_bound(:, min_idx) + rate*(right_bound(:, max_idx)-right_bound(:, min_idx));
-    left_center = new_bl + 0.15*(new_br-new_bl);
-    right_center = new_bl + 0.85*(new_br-new_bl);
+    left_center = new_bl + 0.05*(new_br-new_bl);
+    right_center = new_bl + 0.95*(new_br-new_bl);
     
     new_center = left_center;
     
@@ -143,11 +143,11 @@ for i=3:N
                 end
                 
                 %valid transfer here
-                
+                %{
                 if ((current_point-prev_point)'*(prev_point-old_point)/norm(current_point-prev_point)/norm(prev_point-old_point))<0.3
                     continue
                 end
-                
+                %}
                 if path_cost(i, j, k) > (path_cost(i-1, k, l) + norm(current_point-prev_point))
                     path_cost(i, j, k) = path_cost(i-1, k, l) + norm(current_point-prev_point);
                     path_from(i, j, k, :) = [k, l];

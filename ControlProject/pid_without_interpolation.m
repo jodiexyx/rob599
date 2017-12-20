@@ -1,6 +1,3 @@
-clc;
-clear all;
-
 tic
 
 load ('TestTrack_out.mat');
