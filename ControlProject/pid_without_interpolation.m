@@ -44,7 +44,14 @@ u0 = zeros(2,1);
 u_c = zeros(2,1);
 
 last_cali_time = 0;
-cali_inter = 3000;
+cali_inter = 1000;
+
+last_all_cali_time = 0;
+all_cali_inter = 10000;
+
+u_before_cali=zeros(2,1);
+x_cali = x0;
+u_after_cali=-1;
 
 while p <= n-4
     M = [x_c(1)*ones(1,n);x_c(3)*ones(1,n)]-[cline_nw(1,:);cline_nw(2,:)];
@@ -68,7 +75,7 @@ while p <= n-4
     sum_grad_min = 0.03;
     
     %F = -0.01*sum_c^2 + 500 + 10000/(x_c(2)+0.01);%input F (better be a function of v and sum_c)*
-    F = 400;
+    F = 100;
     F = max(F,-10000);
     F = min(F,5000);
     
@@ -90,13 +97,28 @@ while p <= n-4
     u_newp = repmat(u_new,1,allow_step);%30,50...* number of input every loop(can be a function)
     u = [u, u_newp];
     %Y = forwardIntegrateControlInput(u');
+    %Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
+
+    if size(u_after_cali, 1) == 1
+        u_after_cali = u_newp;
+    else
+        u_after_cali = [u_after_cali,u_newp];
+    end
     Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
     
     if length(u)-last_cali_time>cali_inter
-        last_cali_time = length(u)
-        Y = forwardIntegrateControlInput([u0';u']);
-    else
-        Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
+        last_cali_time = length(u);
+        
+        if length(u)-last_all_cali_time>all_cali_inter
+            last_all_cali_time  = length(u);
+            Y = forwardIntegrateControlInput([u0';u']);
+        else
+            Y = forwardIntegrateControlInput([u_before_cali(:,end)';u_after_cali'], x_cali);
+        end
+        x_cali = Y(end, :);
+        u_before_cali = [u_before_cali, u_after_cali];
+        u_after_cali = -1;
+
     end
     %{
     if mod(p, 40) == 0
