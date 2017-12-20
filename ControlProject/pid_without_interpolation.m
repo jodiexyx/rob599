@@ -53,7 +53,7 @@ u0 = zeros(2,1);
 u_c = zeros(2,1);
 
 last_cali_time = 0;
-cali_inter = 1000;
+cali_inter = 500;
 
 last_all_cali_time = 0;
 all_cali_inter = 10000;
@@ -106,6 +106,11 @@ while p <= n-2
     allow_step = 20;
     
     u_newp = repmat(u_new,1,allow_step);%30,50...* number of input every loop(can be a function)
+    for i=1:allow_step
+       u_newp(1, i)=interp1([0, allow_step],[u_c(1), u_new(1)],i);
+       u_newp(2, i)=interp1([0, allow_step],[u_c(2), u_new(2)],i);
+    end
+    
     u = [u, u_newp];
     %Y = forwardIntegrateControlInput(u');
     %Y = forwardIntegrateControlInput([u_c';u_newp'], x_c);
