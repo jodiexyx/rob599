@@ -3,7 +3,7 @@ clear all;
 
 tic
 
-load ('TestTrack.mat');
+load ('TestTrack_out.mat');
 bl = TestTrack.bl;
 br = TestTrack.br;
 cline = TestTrack.cline;
@@ -14,7 +14,9 @@ hold on;
 plot(br(1,:),br(2,:),'k');
 hold on;
 
-t = 1:1:246;
+N=size(bl, 2);
+
+t = 1:1:N;
 x_c = cline(1,:);
 y_c = cline(2,:);
 
@@ -155,6 +157,16 @@ toc
 Y =forwardIntegrateControlInput(ROB599_ControlsProject_part1_input);
 plot(Y(:,1),Y(:,3),'d','MarkerSize', 2)
 hold on;
+
+if exist('Xobs', 'var')
+    for i=1:length(Xobs)
+        x=[Xobs{i}(:,1);Xobs{i}(1,1)];
+        y=[Xobs{i}(:,2);Xobs{i}(1,2)];
+        plot(x,y)
+        hold on
+    end
+    
+end
 
 
 %scatter(cline_nw(1,:),cline_nw(2,:),'d')
