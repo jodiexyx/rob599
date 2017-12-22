@@ -1,4 +1,7 @@
 function U=ROB599_ControlsProject_part2_Team13(TestTrack,Xobs)
+
+t_start = tic
+
 track_left_boundary = TestTrack.bl;
 track_right_boundary = TestTrack.br;
 track_center = TestTrack.cline;
@@ -16,6 +19,7 @@ center_line = TestTrack.cline;
 fixed_point = zeros(1, N);
 
 for i=1:Nobs
+    
     obs_center = mean(Xobs{i}, 1)';
 
     while(1)
@@ -221,7 +225,6 @@ MyTrack.theta = zeros(1, N);
 bl = MyTrack.bl;
 br = MyTrack.br;
 cline = MyTrack.cline;
-%[U,x1]= outputforwat([287,5,-176,0,2,0],cline(:,2),[0,2000]')
 
 N=size(bl, 2);
 
@@ -249,9 +252,9 @@ x_c = x0;
 p = 0;
 w = 10; %size of window
 pro_pool = zeros(1,w);
-a = 2;%P*
+a = 2.5;%P*
 b = 1;%I*
-c = 1;%D*
+c = -0.5;%D*
 flag = 0;%just start
 count = 0;
 F = 0;
@@ -271,13 +274,18 @@ x_cali = x0;
 u_after_cali=-1;
 
 while p <= n-4
+    
+    if toc(t_start)>850
+        break;
+    end
+    
     M = [x_c(1)*ones(1,n);x_c(3)*ones(1,n)]-[cline_nw(1,:);cline_nw(2,:)];
     [min_dis,index] = sort(sum(M.*M));
 %   norm([x0(1);x0(3)]-cline_nw(:,2))%test
     p_new = index(1) + 2;%objective index
     
     if p_new ~= p
-        p=p_new
+        p=p_new;
     else
         p=p_new;
     end
@@ -298,7 +306,7 @@ while p <= n-4
     pp2=cline_nw(:,p+2)-cline_nw(:,p);
     alpha = acos(dot(pp1,pp2)/(norm(pp1)*norm(pp2)));
     F = 3/alpha;
-    F = min(F,300);
+    F = min(F,270);
     
     F = min(max(F,-10000),5000);
     
@@ -315,7 +323,7 @@ while p <= n-4
     %calculate step num
     velocity = x_c(2);
     %allow_step = max(min(round(min_dis(1)/velocity/0.01/2), 20), 1);
-    allow_step = 10;
+    allow_step = 5;
     
     u_newp = repmat(u_new,1,allow_step);%30,50...* number of input every loop(can be a function)
     for i=1:allow_step
